@@ -1,7 +1,7 @@
 from flask import Flask, render_template, request
 import requests
 
-from bs4 import BeautifulSoup4
+from bs4 import BeautifulSoup
 
 
 app = Flask(__name__)
@@ -58,4 +58,5 @@ def scan():
     return render_template('result.html', result=result, url=url)
 
 if __name__ == '__main__':
+
     app.run(host='0.0.0.0', port=5000, debug=True)
