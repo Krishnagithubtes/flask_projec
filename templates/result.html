@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Scan Result</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            background-color: #f0f4f8;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 40px 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 2rem;
+            letter-spacing: 1px;
+            animation: fadeInDown 0.8s;
+        }
+        @keyframes fadeInDown {
+            from { opacity: 0; transform: translateY(-30px);}
+            to { opacity: 1; transform: translateY(0);}
+        }
+        .result-box {
+            background-color: #ffffff;
+            padding: 30px 40px;
+            border-radius: 14px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.13);
+            max-width: 700px;
+            width: 100%;
+            margin-bottom: 30px;
+            animation: fadeInUp 1s;
+            transition: box-shadow 0.3s;
+        }
+        .result-box:hover {
+            box-shadow: 0 12px 32px rgba(0, 123, 255, 0.13);
+        }
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(40px);}
+            to { opacity: 1; transform: translateY(0);}
+        }
+        ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        li {
+            padding: 10px 0;
+            border-bottom: 1px solid #eee;
+            color: #444;
+            font-size: 1.08rem;
+            transition: background 0.2s;
+        }
+        li:last-child {
+            border-bottom: none;
+        }
+        li strong {
+            color: #007BFF;
+            letter-spacing: 0.5px;
+        }
+        h3 {
+            margin-top: 28px;
+            color: #007BFF;
+            font-size: 1.2rem;
+            letter-spacing: 1px;
+            animation: fadeInDown 1.2s;
+        }
+        .error {
+            color: #d90429;
+            font-weight: bold;
+            font-size: 1.1rem;
+            padding: 12px;
+            border-radius: 8px;
+            background: #ffeaea;
+            margin-bottom: 18px;
+            animation: shake 0.5s;
+        }
+        @keyframes shake {
+            0% { transform: translateX(0);}
+            20% { transform: translateX(-8px);}
+            40% { transform: translateX(8px);}
+            60% { transform: translateX(-8px);}
+            80% { transform: translateX(8px);}
+            100% { transform: translateX(0);}
+        }
+        canvas {
+            margin-top: 30px;
+            max-width: 100%;
+            background: #f8fafc;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,123,255,0.07);
+            animation: fadeInUp 1.2s;
+        }
+        a {
+            display: inline-block;
+            margin-top: 20px;
+            text-decoration: none;
+            background-color: #007BFF;
+            color: white;
+            padding: 12px 28px;
+            border-radius: 8px;
+            font-size: 1.08rem;
+            font-weight: 500;
+            box-shadow: 0 2px 8px rgba(0,123,255,0.09);
+            transition: background-color 0.3s, box-shadow 0.3s, transform 0.2s;
+        }
+        a:hover {
+            background-color: #0056b3;
+            box-shadow: 0 4px 16px rgba(0,123,255,0.18);
+            transform: translateY(-2px) scale(1.03);
+        }
+    </style>
+</head>
+<body>
+    <h2>🔍 Scan Result for: {{ url }}</h2>
+    <div class="result-box">
+        {% if result.error %}
+            <p class="error">⚠️ Error: {{ result.error }}</p>
+        {% else %}
+            <ul>
+                <li><strong>Status:</strong> {{ result.status }}</li>
+                <li><strong>XSS:</strong> {{ result.xss }}</li>
+                <li><strong>Clickjacking:</strong> {{ result.clickjacking }}</li>
+                <li><strong>SQL Injection:</strong> {{ result.sqli }}</li>
+            </ul>
+            <h3>🛡️ Security Headers</h3>
+            <ul>
+                {% for key, value in result.headers.items() %}
+                    <li><strong>{{ key }}:</strong> {{ value }}</li>
+                {% endfor %}
+            </ul>
+            <canvas id="vulnChart"></canvas>
+        {% endif %}
+    </div>
+    <a href="/">🔁 Scan another site</a>
+    <script>
+        function animateChart(chart) {
+            let origData = chart.data.datasets[0].data.slice();
+            chart.data.datasets[0].data = [0,0,0];
+            chart.update();
+            let step = 0;
+            let interval = setInterval(function() {
+                step++;
+                chart.data.datasets[0].data = origData.map(function(v) { return Math.min(v, step); });
+                chart.update();
+                if (step >= 1) clearInterval(interval);
+            }, 400);
+        }
+        const ctx = document.getElementById('vulnChart').getContext('2d');
+        const vulnChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: ['XSS', 'Clickjacking', 'SQL Injection'],
+                datasets: [{
+                    label: 'Vulnerability Status',
+                    data: [
+                        {{ 1 if "No" not in result.xss else 0 }},
+                        {{ 1 if "Vulnerable" in result.clickjacking else 0 }},
+                        {{ 1 if "No" not in result.sqli else 0 }}
+                    ],
+                    backgroundColor: [
+                        'rgba(255,99,132,0.85)',
+                        'rgba(255,206,86,0.85)',
+                        'rgba(54,162,235,0.85)'
+                    ],
+                    borderRadius: 8,
+                    borderWidth: 2,
+                    borderColor: [
+                        'rgba(255,99,132,0.3)',
+                        'rgba(255,206,86,0.3)',
+                        'rgba(54,162,235,0.3)'
+                    ],
+                    hoverBackgroundColor: [
+                        'rgba(255,99,132,1)',
+                        'rgba(255,206,86,1)',
+                        'rgba(54,162,235,1)'
+                    ],
+                    hoverBorderColor: [
+                        'rgba(255,99,132,0.7)',
+                        'rgba(255,206,86,0.7)',
+                        'rgba(54,162,235,0.7)'
+                    ]
+                }]
+            },
+            options: {
+                responsive: true,
+                animation: {
+                    duration: 1200,
+                    easing: 'easeOutBounce'
+                },
+                plugins: {
+                    legend: { display: false },
+                    title: {
+                        display: true,
+                        text: 'Detected Vulnerabilities',
+                        color: '#232946',
+                        font: { size: 18, weight: 'bold' }
+                    },
+                    tooltip: {
+                        enabled: true,
+                        backgroundColor: '#232946',
+                        titleColor: '#fff',
+                        bodyColor: '#fff',
+                        borderColor: '#007BFF',
+                        borderWidth: 2,
+                        cornerRadius: 8,
+                        padding: 12
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: { display: false },
+                        ticks: { color: '#232946', font: { size: 15, weight: 'bold' } }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        max: 1,
+                        grid: { color: '#e0e7ef' },
+                        ticks: {
+                            stepSize: 1,
+                            color: '#232946',
+                            font: { size: 14 },
+                            callback: function(value) { return value === 1 ? 'Detected' : 'Safe'; }
+                        }
+                    }
+                }
+            }
+        });
+        animateChart(vulnChart);
+    </script>

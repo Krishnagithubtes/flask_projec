@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Vulnerability Scanner</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            background-color: #f0f4f8;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            height: 100vh;
+            display: flex;
+        }
+        .sidebar-toggle {
+            position: fixed;
+            top: 24px;
+            left: 18px;
+            z-index: 1100;
+            background: #232946;
+            color: #fff;
+            border: none;
+            border-radius: 50%;
+            width: 38px;
+            height: 38px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+            transition: background 0.2s;
+        }
+        .sidebar-toggle:hover {
+            background: #353a5a;
+        }
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: -240px;
+            width: 220px;
+            height: 100vh;
+            background: #232946;
+            color: #fff;
+            padding: 20px 12px;
+            box-shadow: 2px 0 12px rgba(0,0,0,0.07);
+            display: flex;
+            flex-direction: column;
+            transition: left 0.3s;
+            z-index: 1099;
+        }
+        .sidebar.open {
+            left: 0;
+        }
+        .sidebar h3 {
+            margin-top: 0;
+            margin-bottom: 12px;
+            font-size: 18px;
+            letter-spacing: 1px;
+        }
+        .sidebar-section {
+            margin-bottom: 18px;
+        }
+        .history-list, .result-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            flex: 1;
+            overflow-y: auto;
+        }
+        .history-list li, .result-list li {
+            padding: 8px 6px;
+            margin-bottom: 6px;
+            background: #353a5a;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.2s;
+            word-break: break-all;
+            font-size: 0.95rem;
+        }
+        .history-list li:hover, .result-list li:hover {
+            background: #4f5d7a;
+        }
+        .result-list li {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        .result-view {
+            background: #fff;
+            color: #232946;
+            border-radius: 6px;
+            padding: 8px 10px;
+            margin-top: 8px;
+            font-size: 0.95rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+        }
+        .close-view {
+            background: #007BFF;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            padding: 2px 8px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            float: right;
+            margin-top: 4px;
+        }
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            width: 100%;
+        }
+        h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+        }
+        form {
+            background-color: #ffffff;
+            padding: 22px 28px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            min-width: 220px;
+        }
+        label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: bold;
+            color: #555;
+        }
+        input[type="text"] {
+            width: 100%;
+            max-width: 300px;
+            padding: 8px;
+            margin-bottom: 16px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 15px;
+        }
+        button {
+            padding: 8px 16px;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 15px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .scanner-modal {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.18);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        .scanner-box {
+            background: #fff;
+            padding: 18px 28px;
+            border-radius: 10px;
+            box-shadow: 0 6px 24px rgba(0,0,0,0.13);
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-width: 120px;
+            min-height: 120px;
+        }
+        .scanner-logo {
+            width: 38px;
+            height: 38px;
+            margin-bottom: 10px;
+            animation: spin 1.2s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg);}
+            100% { transform: rotate(360deg);}
+        }
+        .wait-text {
+            font-size: 15px;
+            color: #232946;
+            margin-bottom: 6px;
+        }
+        .timer {
+            font-size: 14px;
+            color: #555;
+        }
+        @media (max-width: 700px) {
+            .sidebar {
+                width: 100px;
+                left: -120px;
+                padding: 8px 2px;
+            }
+            .sidebar.open {
+                left: 0;
+            }
+            .main-content {
+                padding: 6px;
+            }
+            form {
+                padding: 10px 4px;
+                min-width: 120px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <button class="sidebar-toggle" id="sidebarToggle" title="Show History">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+            <rect x="4" y="6" width="16" height="2" rx="1" fill="#fff"/>
+            <rect x="4" y="11" width="16" height="2" rx="1" fill="#fff"/>
+            <rect x="4" y="16" width="16" height="2" rx="1" fill="#fff"/>
+        </svg>
+    </button>
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-section">
+            <h3>Search History</h3>
+            <ul class="history-list" id="historyList">
+                <!-- History items will be injected here -->
+            </ul>
+        </div>
+        <div class="sidebar-section">
+            <h3>Stored Results</h3>
+            <ul class="result-list" id="resultList">
+                <!-- Stored results will be injected here -->
+            </ul>
+        </div>
+    </div>
+    <div class="main-content">
+        <h2>🔍 Simple Web Vulnerability Scanner</h2>
+        <form id="scanForm" action="/scan" method="post" autocomplete="off">
+            <label for="url">Enter Website URL:</label>
+            <input type="text" id="url" name="url" placeholder="https://example.com" required>
+            <button type="submit">
+                <svg width="16" height="16" fill="none" viewBox="0 0 24 24">
+                    <circle cx="11" cy="11" r="8" stroke="#fff" stroke-width="2"/>
+                    <line x1="17" y1="17" x2="22" y2="22" stroke="#fff" stroke-width="2"/>
+                </svg>
+                Scan
+            </button>
+        </form>
+    </div>
+    <div id="scannerModal" class="scanner-modal" style="display:none;">
+        <div class="scanner-box">
+            <svg class="scanner-logo" viewBox="0 0 64 64" fill="none">
+                <circle cx="32" cy="32" r="28" stroke="#007BFF" stroke-width="6"/>
+                <path d="M32 18v14l10 6" stroke="#007BFF" stroke-width="6" stroke-linecap="round"/>
+            </svg>
+            <div class="wait-text">Scanning... Please wait</div>
+            <div class="timer" id="scanTimer">0s</div>
+        </div>
+    </div>
+    <script>
+        // Sidebar toggle logic
+        const sidebarToggle = document.getElementById('sidebarToggle');
+        const sidebar = document.getElementById('sidebar');
+        sidebarToggle.addEventListener('click', () => {
+            sidebar.classList.toggle('open');
+        });
+
+        // History management using localStorage
+        const historyList = document.getElementById('historyList');
+        function loadHistory() {
+            const history = JSON.parse(localStorage.getItem('scanHistory') || '[]');
+            historyList.innerHTML = '';
+            history.slice(-10).reverse().forEach(url => {
+                const li = document.createElement('li');
+                li.textContent = url;
+                li.onclick = () => {
+                    document.getElementById('url').value = url;
+                    sidebar.classList.remove('open');
+                };
+                historyList.appendChild(li);
+            });
+        }
+        function addToHistory(url) {
+            let history = JSON.parse(localStorage.getItem('scanHistory') || '[]');
+            if (!history.includes(url)) {
+                history.push(url);
+                localStorage.setItem('scanHistory', JSON.stringify(history));
+            }
+            loadHistory();
+        }
+        loadHistory();
+
+        // Stored Results management
+        const resultList = document.getElementById('resultList');
+        function loadResults() {
+            const results = JSON.parse(localStorage.getItem('storedResults') || '[]');
+            resultList.innerHTML = '';
+            results.slice(-10).reverse().forEach((res, idx) => {
+                const li = document.createElement('li');
+                li.innerHTML = `
+                    <span><strong>${res.url}</strong></span>
+                    <button class="view-btn" style="margin-top:4px;background:#007BFF;color:#fff;border:none;border-radius:4px;padding:2px 8px;cursor:pointer;font-size:0.9rem;">View</button>
+                `;
+                li.querySelector('.view-btn').onclick = function() {
+                    showResultView(res, li);
+                };
+                resultList.appendChild(li);
+            });
+        }
+        function showResultView(res, li) {
+            // Remove any existing result-view
+            document.querySelectorAll('.result-view').forEach(e => e.remove());
+            const div = document.createElement('div');
+            div.className = 'result-view';
+            div.innerHTML = `
+                <button class="close-view">Close</button>
+                <div><strong>Status:</strong> ${res.status}</div>
+                <div><strong>XSS:</strong> ${res.xss}</div>
+                <div><strong>Clickjacking:</strong> ${res.clickjacking}</div>
+                <div><strong>SQL Injection:</strong> ${res.sqli}</div>
+                <div><strong>Headers:</strong>
+                    <ul style="margin:0;padding-left:16px;">
+                        ${Object.entries(res.headers).map(([k,v]) => `<li><strong>${k}:</strong> ${v}</li>`).join('')}
+                    </ul>
+                </div>
+            `;
+            div.querySelector('.close-view').onclick = function() {
+                div.remove();
+            };
+            li.appendChild(div);
+        }
+        loadResults();
+
+        // Listen for storage changes (if result is stored from another tab)
+        window.addEventListener('storage', function(e) {
+            if (e.key === 'storedResults') loadResults();
+            if (e.key === 'scanHistory') loadHistory();
+        });
+
+        // Scanner modal logic
+        const scanForm = document.getElementById('scanForm');
+        const scannerModal = document.getElementById('scannerModal');
+        const scanTimer = document.getElementById('scanTimer');
+        let timerInterval = null;
+        let startTime = null;
+
+        scanForm.addEventListener('submit', function(e) {
+            addToHistory(document.getElementById('url').value);
+
+            // Store result automatically (dummy data, real data should come from backend)
+            const url = document.getElementById('url').value;
+            const resultData = {
+                url: url,
+                status: "Scanned (see result page)",
+                xss: "Unknown",
+                clickjacking: "Unknown",
+                sqli: "Unknown",
+                headers: {}
+            };
+            let stored = JSON.parse(localStorage.getItem('storedResults') || '[]');
+            if (!stored.some(r => r.url === url)) {
+                stored.push(resultData);
+                localStorage.setItem('storedResults', JSON.stringify(stored));
+            }
+
+            // Show scanner modal and run timer until page reloads
+            scannerModal.style.display = 'flex';
+            startTime = Date.now();
+            let seconds = 0;
+            scanTimer.textContent = '0s';
+            if (timerInterval) clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                seconds = Math.floor((Date.now() - startTime) / 1000);
+                scanTimer.textContent = seconds + 's';
+            }, 1000);
+        });
+
+        window.addEventListener('pageshow', () => {
+            scannerModal.style.display = 'none';
+            clearInterval(timerInterval);
+            loadResults();
+            loadHistory();
+        });
+    </script>
+</body>
+</html>
